@@ -1,13 +1,16 @@
-// backend/routes/productRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const ProductController = require('../controllers/ProductController');
 
-// Routes for the product API
+// Routes for product API
 router.get('/', ProductController.getAllProducts);
-router.post('/', ProductController.addProduct);
-router.put('/:id', ProductController.updateProduct);
+
+// Use multer for file upload when adding a product
+router.post('/', ProductController.upload.single('image'), ProductController.addProduct);
+
+// Use multer for file upload when updating a product
+router.put('/:id', ProductController.upload.single('image'), ProductController.updateProduct);
+
 router.delete('/:id', ProductController.deleteProduct);
 
 module.exports = router;

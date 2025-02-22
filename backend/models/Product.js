@@ -1,5 +1,3 @@
-// backend/models/Product.js
-
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema(
@@ -23,13 +21,13 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    image: {
+    image: { // Image will now hold the file path, not just the URL.
       type: String,
-      trim: true,
+      required: true, // Ensure an image is always uploaded
     },
   },
   {
-    timestamps: true, // Created at and Updated at fields
+    timestamps: true,
   }
 );
 

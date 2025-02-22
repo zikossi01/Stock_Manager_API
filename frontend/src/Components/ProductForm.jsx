@@ -2,80 +2,109 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const ProductForm = ({ onProductAdded, onProductEdited, editingProduct }) => {
+  // State for form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState(null); // To handle the selected image file
+  const [imagePreview, setImagePreview] = useState(null); // To show a preview of the image
 
+  // Set initial state if editing a product
   useEffect(() => {
     if (editingProduct) {
       setTitle(editingProduct.title);
       setDescription(editingProduct.description);
       setPrice(editingProduct.price);
       setStock(editingProduct.stock);
-      setImageUrl(editingProduct.imageUrl);
-    } else {
-      clearForm();
+      setImagePreview(editingProduct.image); // Use the existing product image if editing
     }
   }, [editingProduct]);
 
+  // Handle form submission (create or update product)
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const productData = { title, description, price, stock, imageUrl };
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('price', price);
+    formData.append('stock', stock);
 
-    if (editingProduct) {
-      // Edit the product
-      try {
+    // If there's an image file, append it to the form data
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    try {
+      if (editingProduct) {
+        // Update product
         const response = await axios.put(
           `http://localhost:5000/api/products/${editingProduct._id}`,
-          productData
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
-        onProductEdited(response.data); // Notify parent component of the update
-        clearForm();
-      } catch (error) {
-        console.error('Error editing product:', error);
+        onProductEdited(response.data); // Callback after editing
+      } else {
+        // Add new product
+        const response = await axios.post(
+          'http://localhost:5000/api/products',
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        onProductAdded(response.data); // Callback after adding
       }
-    } else {
-      // Add a new product
-      try {
-        const response = await axios.post('http://localhost:5000/api/products', productData);
-        onProductAdded(response.data); // Notify parent component of the new product
-        clearForm();
-      } catch (error) {
-        console.error('Error adding product:', error);
-      }
+
+      clearForm(); // Clear the form after submission
+    } catch (error) {
+      console.error('Error adding/editing product:', error);
     }
   };
 
+  // Handle image file selection
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setImageFile(file);
+
+      // Create a preview of the image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result); // Set the preview URL to display the image
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Clear form fields
   const clearForm = () => {
     setTitle('');
     setDescription('');
     setPrice('');
     setStock('');
-    setImageUrl('');
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex flex-col relative">
-        <label htmlFor="title" className="text-sm font-medium text-white transition-all transform focus:scale-110 focus:text-teal-300">
+      <div className="flex flex-col">
+        <label htmlFor="title" className="text-sm font-medium text-white">
           Product Title
         </label>
         <input
           id="title"
-          type=""
+          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          className="mt-2 p-3 border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition-all transform hover:scale-105"
+          className="mt-2 p-3 border border-teal-300 rounded-md"
         />
       </div>
 
-      <div className="flex flex-col relative">
-        <label htmlFor="description" className="text-sm font-medium text-white transition-all transform focus:scale-110 focus:text-teal-300">
-          Description
+      <div className="flex flex-col">
+        <label htmlFor="description" className="text-sm font-medium text-white">
+          Product Description
         </label>
         <textarea
           id="description"
@@ -83,59 +112,65 @@ const ProductForm = ({ onProductAdded, onProductEdited, editingProduct }) => {
           onChange={(e) => setDescription(e.target.value)}
           required
           rows="4"
-          className="mt-2 p-3 border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition-all transform hover:scale-105"
+          className="mt-2 p-3 border border-teal-300 rounded-md"
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col relative">
-          <label htmlFor="price" className="text-sm font-medium text-white transition-all transform focus:scale-110 focus:text-teal-300">
-            Price ($)
-          </label>
-          <input
-            id="price"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-            min="0"
-            className="mt-2 p-3 border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition-all transform hover:scale-105"
-          />
-        </div>
-
-        <div className="flex flex-col relative">
-          <label htmlFor="stock" className="text-sm font-medium text-white transition-all transform focus:scale-110 focus:text-teal-300">
-            Stock
-          </label>
-          <input
-            id="stock"
-            type="number"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            required
-            min="0"
-            className="mt-2 p-3 border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition-all transform hover:scale-105"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col relative">
-        <label htmlFor="imageUrl" className="text-sm font-medium text-white transition-all transform focus:scale-110 focus:text-teal-300">
-          Image URL
+      <div className="flex flex-col">
+        <label htmlFor="price" className="text-sm font-medium text-white">
+          Product Price
         </label>
         <input
-          id="imageUrl"
-          type="file"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          id="price"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
           required
-          className="mt-2 p-3 border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition-all transform hover:scale-105"
+          min="0"
+          className="mt-2 p-3 border border-teal-300 rounded-md"
         />
+      </div>
+
+      <div className="flex flex-col">
+        <label htmlFor="stock" className="text-sm font-medium text-white">
+          Product Stock
+        </label>
+        <input
+          id="stock"
+          type="number"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+          required
+          min="0"
+          className="mt-2 p-3 border border-teal-300 rounded-md"
+        />
+      </div>
+
+      <div className="flex flex-col">
+        <label htmlFor="image" className="text-sm font-medium text-white">
+          Product Image
+        </label>
+        <input
+          id="image"
+          type="file"
+          onChange={handleImageChange}
+          required={!editingProduct} // Make sure image is required if editing is not happening
+          className="mt-2 p-3 border border-teal-300 rounded-md"
+        />
+        {imagePreview && (
+          <div className="mt-4">
+            <img
+              src={imagePreview}
+              alt="Image Preview"
+              className="w-32 h-32 object-cover rounded-md"
+            />
+          </div>
+        )}
       </div>
 
       <button
         type="submit"
-        className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all transform hover:scale-105 hover:shadow-xl"
+        className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
       >
         {editingProduct ? 'Update Product' : 'Add Product'}
       </button>
